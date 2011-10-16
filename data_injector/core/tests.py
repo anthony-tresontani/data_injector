@@ -5,7 +5,11 @@ from core.models import Generator
 from test_data.models import *
 
 class TestInjector(TestCase):
+
+    def tearDown(self):
+        Generator._generators = {}
     
+
     def check_this_model(self, model):
         self.assertRaises(IntegrityError, model.objects.create)
         my_obj = Generator.create(model)
@@ -35,4 +39,33 @@ class TestInjector(TestCase):
     def test_partial_value(self):
         my_obj = Generator.create(CharModel, int_field=18)
         self.assertEquals(my_obj.int_field, 18)
+
+    def test_custom_field_generator(self):
+
+        def int_generator():
+            return 12
+
+        Generator.register(int_generator, CharModel, "int_field",)
+        my_obj = Generator.create(CharModel)
+        self.assertEquals(my_obj.int_field, 12)
+        my_obj = Generator.create(CharModel, int_field=18)
+        self.assertEquals(my_obj.int_field, 18)
+
+    def test_custom_type_generator(self):
+
+        def int_generator():
+            return 9
+
+        Generator.register(int_generator, "IntegerField")
+        my_obj = Generator.create(CharModel)
+        self.assertEquals(my_obj.int_field, 9)
+        my_obj2 = Generator.create(CharModel)
+        self.assertEquals(my_obj2.int_field, 9)
+
+    def test_value_generator(self):
+        Generator.register(10, CharModel, "int_field",)
+        my_obj = Generator.create(CharModel)
+        self.assertEquals(my_obj.int_field, 10)
+
+        
         
