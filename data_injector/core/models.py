@@ -61,6 +61,13 @@ class CharFieldGenerator(ValueGenerator):
     def default_generator(self):
         return "a_char"[:self.field.max_length]
 
+class ManyToManyGenerator(ForeignKeyGenerator):
+
+    def default_generator(self):
+        values = []
+        for i in range(random.randint(1,5)):
+            values.append(super(ManyToManyGenerator,self).default_generator())
+        return values
 
 class Generator(object):
 
@@ -76,11 +83,13 @@ class Generator(object):
                       "FloatField":FloatKeyGenerator,
                       "DateField":DateFieldGenerator,
                       "CharField":CharFieldGenerator,
+                      "ManyToManyField":ManyToManyGenerator,
     }
 
     @classmethod
     def create(cls, model, **kwargs):
         kwargs = kwargs
+        many2many=[]
         for field_name in model._meta.get_all_field_names():
             if field_name in kwargs:
                 # If a value is already provided, just skip
@@ -88,11 +97,23 @@ class Generator(object):
             field = model._meta.get_field_by_name(field_name)[0]
             try:
                 generator = cls._field_mapping[field.__class__.__name__]
-                kwargs[field_name] = generator(model, field).generate()
-                print "Assigned to %s(%s) : %s" % (field_name,field, kwargs[field_name])
+                value = generator(model, field).generate()
+                if isinstance(field, ManyToManyField):
+                    many2many.append(field)
+                else:
+                    kwargs[field_name] = value
+                    print "Assigned to %s(%s) : %s" % (field_name,field, kwargs[field_name])
             except Skip:
                 pass
-        return model.objects.create(**kwargs)
+        obj = model.objects.create(**kwargs)
+        if many2many:
+            generator = cls._field_mapping["ManyToManyField"]
+            for relation in many2many:
+                for value in generator(model,relation).generate():
+                    many2manyManager = getattr(obj,field.name)
+                    many2manyManager.add(value)
+            obj.save()
+        return obj
 
     @classmethod
     def register(cls, generator, obj, field=None):

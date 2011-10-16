@@ -67,5 +67,9 @@ class TestInjector(TestCase):
         my_obj = Generator.create(CharModel)
         self.assertEquals(my_obj.int_field, 10)
 
+    def test_many2many_generator(self):
+        my_obj = Generator.create(Many2ManyModel)
+        self.assertTrue(my_obj.many2many.count()>0)
+
         
         

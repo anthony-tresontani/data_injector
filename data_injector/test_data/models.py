@@ -31,3 +31,6 @@ class ForeignModel(models.Model):
     foreign_field = models.ForeignKey(IntModel)
     foreign_field_2 = models.ForeignKey(CharModel)
     int_field = models.IntegerField()
+
+class Many2ManyModel(models.Model):
+    many2many = models.ManyToManyField(IntModel)
